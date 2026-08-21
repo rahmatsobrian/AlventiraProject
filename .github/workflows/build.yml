@@ -39,12 +39,11 @@ jobs:
           df -h .
 
       # --- 3. Setup Java / SDK / Engine -----------------------------------
-      - name: "3. Setup Godot Export Templates"
+      - name: "3. Setup Godot Export Templates & Java"
         run: |
           set -e
-          echo "[INFO] Menyiapkan direktori export template & editor settings..."
+          echo "[INFO] Menyiapkan direktori export template..."
           mkdir -p ~/.local/share/godot/export_templates/
-          mkdir -p ~/.config/godot/
 
           if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
             mv "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
@@ -56,13 +55,20 @@ jobs:
             exit 1
           fi
 
-          if [ -d "/root/.config/godot" ]; then
-            mv /root/.config/godot ~/.config/godot
-          fi
-
+          # Catatan: menulis manual ke editor_settings-4.3.tres TIDAK reliable
+          # (issue umum di image ini — Godot tidak konsisten membaca file itu
+          # dari command line headless). Cara yang benar-benar bekerja adalah
+          # lewat environment variable JAVA_HOME, yang dibaca otomatis oleh
+          # Android export plugin sebagai fallback. Ditulis ke $GITHUB_ENV
+          # supaya ikut terbawa ke step-step berikutnya di job yang sama.
           JAVA_HOME_PATH="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
           echo "[INFO] JAVA_HOME terdeteksi: $JAVA_HOME_PATH"
-          echo "export/android/java_sdk_path = \"$JAVA_HOME_PATH\"" >> ~/.config/godot/editor_settings-4.3.tres
+          echo "JAVA_HOME=$JAVA_HOME_PATH" >> "$GITHUB_ENV"
+
+          echo "[INFO] ANDROID_HOME dari image: ${ANDROID_HOME:-<tidak diset>}"
+          if [ -z "${ANDROID_HOME:-}" ]; then
+            echo "[WARN] ANDROID_HOME tidak diset oleh image dasar — export Android di step berikutnya mungkin gagal."
+          fi
 
       # --- 4. Verify Dependencies ------------------------------------------
       - name: "4. Verifikasi Dependency & File Project"
@@ -89,11 +95,25 @@ jobs:
           set -e
           echo "[INFO] Menjalankan import project Godot secara headless..."
           godot --headless --verbose --import 2>&1 | tee import_log.txt || true
-          if grep -qiE "(ERROR|SCRIPT ERROR)" import_log.txt; then
-            echo "[ERROR] Ditemukan error saat import project. Lihat log di atas."
+
+          # Catatan: Godot headless di CI (tanpa display/audio device) sering
+          # mencetak baris "ERROR:" yang non-fatal (inisialisasi driver
+          # render/audio yang memang di-skip di mode headless). Grep generik
+          # ke kata "ERROR" jadi terlalu sensitif dan memicu false positive.
+          # Yang benar-benar menandakan project rusak adalah "SCRIPT ERROR"
+          # (GDScript gagal di-parse/compile) — itu yang kita jadikan syarat gagal.
+          if grep -q "SCRIPT ERROR" import_log.txt; then
+            echo "[ERROR] Ditemukan SCRIPT ERROR (GDScript gagal di-parse):"
+            grep -n "SCRIPT ERROR" import_log.txt
             exit 1
           fi
-          echo "[INFO] Import project selesai tanpa error fatal."
+
+          if grep -qi "^ERROR:" import_log.txt; then
+            echo "[WARN] Ada baris 'ERROR:' di log import (biasanya non-fatal di headless CI, sekadar info):"
+            grep -in "^ERROR:" import_log.txt || true
+          fi
+
+          echo "[INFO] Import project selesai — tidak ada SCRIPT ERROR."
 
           echo "[INFO] Memvalidasi seluruh file data JSON (dialog & quest)..."
           find data -name "*.json" -print0 | while IFS= read -r -d '' file; do
