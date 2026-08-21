@@ -1,0 +1,44 @@
+; Engine configuration file.
+; Godot 4.3 — lihat README.md untuk penjelasan struktur project.
+
+config_version=5
+
+[application]
+
+config/name="Alventira: Warisan Sang Penjaga Cahaya"
+run/main_scene="res://scenes/MainMenu.tscn"
+config/features=PackedStringArray("4.3", "Mobile")
+config/icon="res://assets/ui/icon.png"
+boot_splash/bg_color=Color(0.07, 0.09, 0.14, 1)
+
+[autoload]
+
+GameManager="*res://scripts/autoload/GameManager.gd"
+SaveSystem="*res://scripts/autoload/SaveSystem.gd"
+QuestSystem="*res://scripts/autoload/QuestSystem.gd"
+DialogueSystem="*res://scripts/autoload/DialogueSystem.gd"
+UIManager="*res://scripts/autoload/UIManager.gd"
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=540
+window/handheld/orientation="landscape"
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/energy_saving/keep_screen_on=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0.07, 0.09, 0.14, 1)
+
+[physics]
+
+2d/default_gravity=0
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true

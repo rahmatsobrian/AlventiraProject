@@ -1,0 +1,171 @@
+name: Build Android APK
+
+# Workflow ini SENGAJA tidak membutuhkan Repository Secret apa pun.
+# Signing APK memakai debug/development keystore yang sudah dikomit
+# di android/alventira-debug.keystore (lihat README.md bagian
+# "Informasi Signing Development" untuk penjelasan lengkap).
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.3"
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.3
+    steps:
+      # --- 1. Checkout ---------------------------------------------------
+      - name: "1. Checkout Repository"
+        uses: actions/checkout@v4
+
+      # --- 2. Setup Environment -------------------------------------------
+      - name: "2. Tampilkan Info Environment"
+        run: |
+          set -e
+          echo "=== Info Environment ==="
+          uname -a
+          echo "--- Godot ---"
+          godot --version
+          echo "--- Java ---"
+          java -version
+          echo "--- Disk ---"
+          df -h .
+
+      # --- 3. Setup Java / SDK / Engine -----------------------------------
+      - name: "3. Setup Godot Export Templates"
+        run: |
+          set -e
+          echo "[INFO] Menyiapkan direktori export template & editor settings..."
+          mkdir -p ~/.local/share/godot/export_templates/
+          mkdir -p ~/.config/godot/
+
+          if [ -d "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" ]; then
+            mv "/root/.local/share/godot/export_templates/${GODOT_VERSION}.stable" \
+               ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+            echo "[INFO] Export template ${GODOT_VERSION} berhasil disiapkan."
+          else
+            echo "[ERROR] Export template Godot ${GODOT_VERSION} tidak ditemukan di dalam image."
+            echo "[ERROR] Pastikan tag image 'barichello/godot-ci:${GODOT_VERSION}' masih tersedia."
+            exit 1
+          fi
+
+          if [ -d "/root/.config/godot" ]; then
+            mv /root/.config/godot ~/.config/godot
+          fi
+
+          JAVA_HOME_PATH="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+          echo "[INFO] JAVA_HOME terdeteksi: $JAVA_HOME_PATH"
+          echo "export/android/java_sdk_path = \"$JAVA_HOME_PATH\"" >> ~/.config/godot/editor_settings-4.3.tres
+
+      # --- 4. Verify Dependencies ------------------------------------------
+      - name: "4. Verifikasi Dependency & File Project"
+        run: |
+          set -e
+          echo "[INFO] Memeriksa file-file penting project..."
+          MISSING=0
+          for f in "project.godot" "export_presets.cfg" "android/alventira-debug.keystore" "scenes/MainMenu.tscn" "scenes/Main.tscn"; do
+            if [ ! -f "$f" ]; then
+              echo "[ERROR] File wajib tidak ditemukan: $f"
+              MISSING=1
+            else
+              echo "[INFO] OK: $f"
+            fi
+          done
+          if [ "$MISSING" -ne 0 ]; then
+            echo "[ERROR] Ada file wajib yang hilang. Build dihentikan."
+            exit 1
+          fi
+
+      # --- 5. Validate Project ---------------------------------------------
+      - name: "5. Validasi Project (Import Headless + Cek JSON)"
+        run: |
+          set -e
+          echo "[INFO] Menjalankan import project Godot secara headless..."
+          godot --headless --verbose --import 2>&1 | tee import_log.txt || true
+          if grep -qiE "(ERROR|SCRIPT ERROR)" import_log.txt; then
+            echo "[ERROR] Ditemukan error saat import project. Lihat log di atas."
+            exit 1
+          fi
+          echo "[INFO] Import project selesai tanpa error fatal."
+
+          echo "[INFO] Memvalidasi seluruh file data JSON (dialog & quest)..."
+          find data -name "*.json" -print0 | while IFS= read -r -d '' file; do
+            python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$file" \
+              && echo "[INFO] JSON valid: $file" \
+              || (echo "[ERROR] JSON tidak valid: $file" && exit 1)
+          done
+
+      # --- 6. Build (set version + export) ---------------------------------
+      - name: "6. Build APK"
+        run: |
+          set -e
+          VERSION_CODE="${{ github.run_number }}"
+          VERSION_NAME="1.0.${{ github.run_number }}"
+          echo "[INFO] Set versionCode=$VERSION_CODE versionName=$VERSION_NAME"
+          sed -i "s/version\/code=.*/version\/code=$VERSION_CODE/" export_presets.cfg
+          sed -i "s/version\/name=\".*\"/version\/name=\"$VERSION_NAME\"/" export_presets.cfg
+
+          mkdir -p build/android
+          echo "[INFO] Memulai export Android (debug signing, internal distribution)..."
+          godot --headless --verbose --export-debug "Android" build/android/alventira.apk 2>&1 | tee export_log.txt
+
+          if [ ! -f build/android/alventira.apk ]; then
+            echo "[ERROR] Export APK gagal — file APK tidak ditemukan setelah proses build."
+            echo "[ERROR] Lihat export_log.txt di atas untuk detail error."
+            exit 1
+          fi
+          echo "[INFO] Build APK berhasil."
+
+      # --- 7. Run Tests (validasi hasil build) ------------------------------
+      - name: "7. Jalankan Test Dasar terhadap APK"
+        run: |
+          set -e
+          APK=build/android/alventira.apk
+          echo "[INFO] Cek ukuran file APK..."
+          SIZE=$(stat -c%s "$APK")
+          if [ "$SIZE" -lt 1000000 ]; then
+            echo "[ERROR] Ukuran APK mencurigakan kecil ($SIZE bytes) — kemungkinan build gagal diam-diam."
+            exit 1
+          fi
+          echo "[INFO] Ukuran APK: $SIZE bytes (OK)"
+
+          echo "[INFO] Cek APK adalah arsip ZIP valid berisi AndroidManifest.xml..."
+          if ! unzip -l "$APK" | grep -q "AndroidManifest.xml"; then
+            echo "[ERROR] AndroidManifest.xml tidak ditemukan di dalam APK — APK kemungkinan korup."
+            exit 1
+          fi
+          echo "[INFO] Struktur APK terverifikasi valid."
+
+          echo "[INFO] Cek signature APK (best-effort, tidak menggagalkan build jika tool tidak ditemukan)..."
+          APKSIGNER=$(find / -name "apksigner" -type f 2>/dev/null | head -n 1 || true)
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs "$APK" || echo "[WARN] apksigner melaporkan masalah signature, cek manual."
+          else
+            echo "[WARN] apksigner tidak ditemukan di image, lewati pengecekan signature otomatis."
+          fi
+
+      # --- 8. Package APK ----------------------------------------------------
+      - name: "8. Package APK dengan Nama Versi"
+        run: |
+          set -e
+          VERSION_NAME="1.0.${{ github.run_number }}"
+          mkdir -p build/release
+          cp build/android/alventira.apk "build/release/alventira-v${VERSION_NAME}.apk"
+          echo "[INFO] APK final: build/release/alventira-v${VERSION_NAME}.apk"
+          ls -lh build/release/
+
+      # --- 9. Upload Artifact -------------------------------------------------
+      - name: "9. Upload APK sebagai GitHub Actions Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: alventira-android-apk
+          path: build/release/*.apk
+          if-no-files-found: error
+          retention-days: 30

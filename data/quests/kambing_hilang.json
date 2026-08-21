@@ -1,0 +1,10 @@
+{
+  "id": "kambing_hilang",
+  "title": "Kambing yang Hilang",
+  "giver": "Doni",
+  "description": "Doni kehilangan kambingnya, Belang, di tepi Hutan Lirenwood. Temukan Belang dekat pohon tumbang besar.",
+  "reward_gold": 50,
+  "reward_items": [
+    { "id": "potion_small", "name": "Ramuan Kecil", "type": "consumable", "quantity": 1 }
+  ]
+}

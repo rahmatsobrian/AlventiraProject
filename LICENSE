@@ -1,0 +1,45 @@
+MIT License (Kode Sumber)
+
+Copyright (c) 2026 Proyek Alventira
+
+Dengan ini diberikan izin, secara cuma-cuma, kepada siapa pun yang mendapatkan
+salinan dari perangkat lunak ini beserta file dokumentasi terkait
+("Perangkat Lunak"), untuk memperlakukan Perangkat Lunak tanpa batasan,
+termasuk tanpa batasan hak untuk menggunakan, menyalin, memodifikasi,
+menggabungkan, menerbitkan, mendistribusikan, mensublisensikan, dan/atau
+menjual salinan Perangkat Lunak, serta mengizinkan orang yang menerima
+Perangkat Lunak ini untuk melakukan hal yang sama, dengan syarat berikut:
+
+Pemberitahuan hak cipta di atas dan pemberitahuan izin ini harus disertakan
+dalam semua salinan atau bagian penting dari Perangkat Lunak.
+
+PERANGKAT LUNAK INI DISEDIAKAN "SEBAGAIMANA ADANYA", TANPA JAMINAN APA PUN,
+BAIK TERSURAT MAUPUN TERSIRAT, TERMASUK NAMUN TIDAK TERBATAS PADA JAMINAN
+KELAYAKAN UNTUK DIPERDAGANGKAN, KESESUAIAN UNTUK TUJUAN TERTENTU, DAN
+NON-PELANGGARAN. DALAM KEADAAN APA PUN PEMEGANG HAK CIPTA TIDAK BERTANGGUNG
+JAWAB ATAS KLAIM, KERUSAKAN, ATAU KEWAJIBAN LAIN APA PUN.
+
+---
+
+## Cakupan Lisensi
+
+Lisensi MIT di atas berlaku untuk **kode sumber** (`scripts/`, `*.gd`,
+`project.godot`, `export_presets.cfg`, workflow di `.github/`).
+
+**Story, lore, nama karakter, dan narasi** (termasuk isi
+`docs/story-design-doc.md` dan seluruh dialog di `data/dialogues/`) adalah
+karya kreatif orisinal milik Proyek Alventira — seluruh hak cipta dilindungi
+undang-undang. Silakan gunakan sebagai referensi/inspirasi, tapi jangan
+mendistribusikan ulang cerita ini sebagai karya sendiri tanpa atribusi.
+
+**Aset visual placeholder** (`assets/characters/`, `assets/enemies/`,
+`assets/npcs/`, `assets/tiles/`, `assets/ui/`) dibuat secara prosedural
+khusus untuk project ini (lihat `gen_art.py` di riwayat pembuatan project) —
+bebas dipakai/dimodifikasi/diganti sebagai bagian dari project ini. Aset ini
+memang ditujukan untuk digantikan aset final oleh artist di kemudian hari.
+
+## Catatan Development
+
+Debug keystore di `android/alventira-debug.keystore` disediakan khusus untuk
+signing build development/internal (lihat README.md bagian "Informasi
+Signing Development"). Jangan gunakan untuk rilis production.

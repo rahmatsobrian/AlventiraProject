@@ -1,0 +1,54 @@
+{
+  "start": {
+    "speaker": "Doni",
+    "lines": [
+      "Wah, untung ada yang lewat. Begini, kambingku, si Belang, kabur lagi ke tepi hutan.",
+      "Biasanya dia cuma nyasar dekat pohon tumbang besar itu. Tolong carikan, ya? Aku nggak berani masuk sendirian, hutan lagi aneh belakangan ini."
+    ],
+    "choices": [
+      { "text": "Baik, aku akan carikan.", "next": "accept_quest" },
+      { "text": "Kenapa hutan jadi aneh?", "next": "hutan_info" }
+    ]
+  },
+  "hutan_info": {
+    "speaker": "Doni",
+    "lines": [
+      "Belakangan ada suara-suara aneh dari dalam hutan. Beberapa pemburu bilang lihat bekas cakar besar dekat sungai kecil.",
+      "Makanya aku nggak berani masuk sendirian sekarang."
+    ],
+    "choices": [
+      { "text": "Baik, aku akan carikan.", "next": "accept_quest" }
+    ]
+  },
+  "accept_quest": {
+    "speaker": "Doni",
+    "lines": [
+      "Terima kasih banyak! Cari saja dekat pohon tumbang besar di tepi hutan."
+    ],
+    "action": "start_quest:kambing_hilang",
+    "choices": []
+  },
+  "quest_reminder": {
+    "speaker": "Doni",
+    "lines": [
+      "Belang masih belum ketemu, ya? Coba cek dekat pohon tumbang besar di tepi hutan."
+    ],
+    "choices": []
+  },
+  "quest_complete": {
+    "speaker": "Doni",
+    "lines": [
+      "Belang! Syukurlah. ...Tunggu, itu bekas cakar? Fera sampai sedekat ini ke desa? Aku harus lapor ke Pak Ren.",
+      "Ini, buat kamu, terima kasih sudah repot-repot."
+    ],
+    "action": "complete_quest:kambing_hilang",
+    "choices": []
+  },
+  "after_quest": {
+    "speaker": "Doni",
+    "lines": [
+      "Terima kasih lagi sudah bantu cari Belang kemarin. Dia masih agak trauma, tapi sudah aman di kandang."
+    ],
+    "choices": []
+  }
+}

@@ -1,0 +1,80 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/TouchControls.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/TouchJoystick.gd" id="2"]
+
+[node name="TouchControls" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1")
+
+[node name="Joystick" type="Control" parent="."]
+custom_minimum_size = Vector2(160, 160)
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = -40.0
+script = ExtResource("2")
+
+[node name="Base" type="Panel" parent="Joystick"]
+custom_minimum_size = Vector2(160, 160)
+layout_mode = 0
+offset_right = 160.0
+offset_bottom = 160.0
+
+[node name="Knob" type="Panel" parent="Joystick/Base"]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 0
+offset_right = 56.0
+offset_bottom = 56.0
+mouse_filter = 2
+
+[node name="ButtonInteract" type="Button" parent="."]
+custom_minimum_size = Vector2(90, 90)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -180.0
+offset_right = -170.0
+offset_bottom = -90.0
+text = "AKSI"
+
+[node name="ButtonAttack" type="Button" parent="."]
+custom_minimum_size = Vector2(100, 100)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -130.0
+offset_top = -130.0
+offset_right = -30.0
+offset_bottom = -30.0
+text = "SERANG"
+
+[node name="TopBar" type="HBoxContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 24.0
+offset_right = -20.0
+offset_bottom = 80.0
+theme_override_constants/separation = 12
+
+[node name="ButtonInventory" type="Button" parent="TopBar"]
+custom_minimum_size = Vector2(72, 56)
+text = "TAS"
+
+[node name="ButtonQuest" type="Button" parent="TopBar"]
+custom_minimum_size = Vector2(72, 56)
+text = "QUEST"
+
+[node name="ButtonPause" type="Button" parent="TopBar"]
+custom_minimum_size = Vector2(72, 56)
+text = "☰"
