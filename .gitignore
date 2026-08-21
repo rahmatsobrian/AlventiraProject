@@ -1,0 +1,21 @@
+# Cache & file lokal Godot — aman untuk di-generate ulang, tidak perlu dikomit
+.godot/
+.import/
+*.translation
+
+# Hasil build lokal
+build/
+export.log
+import_log.txt
+export_log.txt
+
+# File OS
+.DS_Store
+Thumbs.db
+
+# ------------------------------------------------------------------
+# PENTING: android/alventira-debug.keystore SENGAJA TIDAK diignore.
+# Keystore ini memang harus ikut dikomit ke repository supaya setiap
+# build GitHub Actions memakai signing key yang sama persis (lihat
+# README.md bagian "Informasi Signing Development").
+# ------------------------------------------------------------------
