@@ -132,6 +132,15 @@ jobs:
           sed -i "s/version\/code=.*/version\/code=$VERSION_CODE/" export_presets.cfg
           sed -i "s/version\/name=\".*\"/version\/name=\"$VERSION_NAME\"/" export_presets.cfg
 
+          # Keystore development disuntik lewat environment variable resmi
+          # Godot 4.3 (bukan lewat export_presets.cfg) — WAJIB path absolut,
+          # path relatif/res:// dilaporkan tidak selalu terbaca benar di sini.
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$(pwd)/android/alventira-debug.keystore"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER="alventira_dev"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="alventira123"
+          echo "[INFO] GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$GODOT_ANDROID_KEYSTORE_DEBUG_PATH"
+          test -f "$GODOT_ANDROID_KEYSTORE_DEBUG_PATH" || (echo "[ERROR] File keystore tidak ditemukan di path absolut di atas." && exit 1)
+
           mkdir -p build/android
           echo "[INFO] Memulai export Android (debug signing, internal distribution)..."
           godot --headless --verbose --export-debug "Android" build/android/alventira.apk 2>&1 | tee export_log.txt
