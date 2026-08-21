@@ -50,7 +50,10 @@ func _on_dialogue_ended() -> void:
 func _on_panel_gui_input(event: InputEvent) -> void:
 	if not DialogueSystem.is_active or choices_box.visible:
 		return
-	var is_tap := (event is InputEventScreenTouch and event.pressed) \
-		or (event is InputEventMouseButton and event.pressed)
+	var is_tap: bool = false
+	if event is InputEventScreenTouch and event.pressed:
+		is_tap = true
+	elif event is InputEventMouseButton and event.pressed:
+		is_tap = true
 	if is_tap:
 		DialogueSystem.advance()
