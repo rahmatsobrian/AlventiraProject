@@ -55,14 +55,35 @@ jobs:
             exit 1
           fi
 
-          # Catatan: menulis manual ke editor_settings-4.3.tres TIDAK reliable
-          # (issue umum di image ini — Godot tidak konsisten membaca file itu
-          # dari command line headless). Cara yang benar-benar bekerja adalah
-          # lewat environment variable JAVA_HOME, yang dibaca otomatis oleh
-          # Android export plugin sebagai fallback. Ditulis ke $GITHUB_ENV
-          # supaya ikut terbawa ke step-step berikutnya di job yang sama.
+          # Setting keystore debug & java SDK path Godot BUKAN dibaca dari
+          # export_presets.cfg saja — ada juga setting global EditorSettings
+          # (export/android/debug_keystore dkk) yang harus ditulis dengan
+          # format resource .tres yang benar (header [gd_resource ...] +
+          # [resource]). Format ini persis meniru cara resmi yang dipakai
+          # image barichello/godot-ci sendiri di Dockerfile-nya — percobaan
+          # saya sebelumnya gagal karena headernya tidak lengkap/salah.
           JAVA_HOME_PATH="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
+          KEYSTORE_ABS_PATH="$(pwd)/android/alventira-debug.keystore"
           echo "[INFO] JAVA_HOME terdeteksi: $JAVA_HOME_PATH"
+          echo "[INFO] Keystore debug (absolut): $KEYSTORE_ABS_PATH"
+          test -f "$KEYSTORE_ABS_PATH" || (echo "[ERROR] Keystore tidak ditemukan di path tersebut." && exit 1)
+
+          mkdir -p ~/.config/godot/
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo ''
+            echo '[resource]'
+            echo "export/android/java_sdk_path = \"$JAVA_HOME_PATH\""
+            echo "export/android/debug_keystore = \"$KEYSTORE_ABS_PATH\""
+            echo 'export/android/debug_keystore_user = "alventira_dev"'
+            echo 'export/android/debug_keystore_pass = "alventira123"'
+          } > ~/.config/godot/editor_settings-4.3.tres
+          echo "[INFO] editor_settings-4.3.tres berhasil ditulis:"
+          cat ~/.config/godot/editor_settings-4.3.tres
+
+          # JAVA_HOME juga diset sebagai environment variable sebagai
+          # fallback tambahan (tidak merugikan, dan sudah terbukti membantu
+          # di build sebelumnya).
           echo "JAVA_HOME=$JAVA_HOME_PATH" >> "$GITHUB_ENV"
 
           echo "[INFO] ANDROID_HOME dari image: ${ANDROID_HOME:-<tidak diset>}"
@@ -132,11 +153,9 @@ jobs:
           sed -i "s/version\/code=.*/version\/code=$VERSION_CODE/" export_presets.cfg
           sed -i "s/version\/name=\".*\"/version\/name=\"$VERSION_NAME\"/" export_presets.cfg
 
-          # Keystore sudah dikonfigurasi langsung di export_presets.cfg
-          # (res://android/alventira-debug.keystore) — TIDAK pakai environment
-          # variable GODOT_ANDROID_KEYSTORE_DEBUG_* di sini, karena kombinasi
-          # keduanya sekaligus dilaporkan bisa memicu kegagalan validasi di
-          # Godot 4.3 (lihat catatan di export_presets.cfg).
+          # Keystore debug dikonfigurasi lewat EditorSettings global di step
+          # sebelumnya ("3. Setup Godot Export Templates & Java"), bukan di
+          # export_presets.cfg — itu pola resmi image barichello/godot-ci.
           test -f "android/alventira-debug.keystore" || (echo "[ERROR] File keystore tidak ditemukan." && exit 1)
 
           mkdir -p build/android
