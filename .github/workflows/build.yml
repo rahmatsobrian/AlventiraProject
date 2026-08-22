@@ -54,16 +54,23 @@ jobs:
             exit 1
           fi
 
-          echo "[INFO] Membuat EditorSettings untuk memastikan path SDK terbaca benar..."
+          echo "[INFO] Membuat EditorSettings untuk memastikan path SDK dan Keystore terbaca benar..."
           mkdir -p ~/.config/godot
-          # Memaksa Godot membaca SDK dan Java dari environment variables GitHub Actions
+          
+          # Gunakan environment variable GITHUB_WORKSPACE sebagai absolute path
+          KEYSTORE_PATH="${GITHUB_WORKSPACE}/android/alventira-debug.keystore"
+          
           cat <<EOF > ~/.config/godot/editor_settings-4.3.tres
           [gd_resource type="EditorSettings" format=3]
           [resource]
           export/android/android_sdk_path = "${ANDROID_HOME:-/usr/lib/android-sdk}"
           export/android/java_sdk_path = "${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
+          export/android/debug_keystore = "${KEYSTORE_PATH}"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
           EOF
-          echo "[INFO] Config EditorSettings selesai disiapkan."
+          echo "[INFO] Config EditorSettings selesai disiapkan dengan path: $KEYSTORE_PATH"
+
 
       # --- 4. Verify Dependencies ------------------------------------------
       - name: "4. Verifikasi Dependency & File Project"
@@ -127,9 +134,12 @@ jobs:
           sed -i "s/version\/code=.*/version\/code=$VERSION_CODE/" export_presets.cfg
           sed -i "s/version\/name=\".*\"/version\/name=\"$VERSION_NAME\"/" export_presets.cfg
 
-          # Keystore debug dikonfigurasi lewat EditorSettings global di step
-          # sebelumnya ("3. Setup Godot Export Templates & Java"), bukan di
-          # export_presets.cfg — itu pola resmi image barichello/godot-ci.
+          # Hapus paksa konfigurasi keystore lokal dari preset (jika ada) 
+          # agar Godot dipaksa menggunakan absolute path dari EditorSettings Step 3.
+          sed -i 's|keystore/debug=.*|keystore/debug=""|' export_presets.cfg
+          sed -i 's|keystore/debug_user=.*|keystore/debug_user=""|' export_presets.cfg
+          sed -i 's|keystore/debug_password=.*|keystore/debug_password=""|' export_presets.cfg
+
           test -f "android/alventira-debug.keystore" || (echo "[ERROR] File keystore tidak ditemukan." && exit 1)
 
           mkdir -p build/android
