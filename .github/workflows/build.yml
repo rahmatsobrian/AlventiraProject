@@ -54,23 +54,20 @@ jobs:
             exit 1
           fi
 
-          echo "[INFO] Membuat EditorSettings untuk memastikan path SDK dan Keystore terbaca benar..."
+          echo "[INFO] Membuat EditorSettings untuk SDK dan Keystore..."
           mkdir -p ~/.config/godot
           
-          # Gunakan environment variable GITHUB_WORKSPACE sebagai absolute path
-          KEYSTORE_PATH="${GITHUB_WORKSPACE}/android/alventira-debug.keystore"
-          
+          # Inject Editor Settings dengan path absolut bawaan container
           cat <<EOF > ~/.config/godot/editor_settings-4.3.tres
           [gd_resource type="EditorSettings" format=3]
           [resource]
-          export/android/android_sdk_path = "${ANDROID_HOME:-/usr/lib/android-sdk}"
-          export/android/java_sdk_path = "${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
-          export/android/debug_keystore = "${KEYSTORE_PATH}"
+          export/android/android_sdk_path = "/usr/lib/android-sdk"
+          export/android/java_sdk_path = "/usr/lib/jvm/java-17-openjdk-amd64"
+          export/android/debug_keystore = "${GITHUB_WORKSPACE}/android/alventira-debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           EOF
-          echo "[INFO] Config EditorSettings selesai disiapkan dengan path: $KEYSTORE_PATH"
-
+          echo "[INFO] Config EditorSettings selesai disiapkan."
 
       # --- 4. Verify Dependencies ------------------------------------------
       - name: "4. Verifikasi Dependency & File Project"
@@ -132,23 +129,24 @@ jobs:
           VERSION_NAME="1.0.${{ github.run_number }}"
           echo "[INFO] Set versionCode=$VERSION_CODE versionName=$VERSION_NAME"
           
-          # Update versi
-          sed -i "s|version/code=.*|version/code=$VERSION_CODE|" export_presets.cfg
-          sed -i "s|version/name=.*|version/name=\"$VERSION_NAME\"|" export_presets.cfg
+          # 1. FIX KRITIKAL: Bersihkan file dari karakter Windows CRLF (\r)
+          # Ini mencegah error path saat sed membaca/memodifikasi file.
+          sed -i 's/\r$//' export_presets.cfg
 
-          # Inject absolute path Keystore langsung ke dalam export_presets.cfg
-          # Ini wajib untuk Godot 4.x agar preset tidak terbaca 'error configuration'
-          KEYSTORE_PATH="${GITHUB_WORKSPACE}/android/alventira-debug.keystore"
-          sed -i "s|^keystore/debug=.*|keystore/debug=\"${KEYSTORE_PATH}\"|" export_presets.cfg
-          sed -i "s|^keystore/debug_user=.*|keystore/debug_user=\"androiddebugkey\"|" export_presets.cfg
-          sed -i "s|^keystore/debug_password=.*|keystore/debug_password=\"android\"|" export_presets.cfg
+          # 2. Update versi
+          sed -i "s|^version/code=.*|version/code=$VERSION_CODE|" export_presets.cfg
+          sed -i "s|^version/name=.*|version/name=\"$VERSION_NAME\"|" export_presets.cfg
 
-          test -f "$KEYSTORE_PATH" || (echo "[ERROR] File keystore tidak ditemukan." && exit 1)
+          # 3. Kosongkan paksa preset keystore lokal agar Godot terpaksa memakai EditorSettings
+          sed -i 's|^keystore/debug=.*|keystore/debug=""|' export_presets.cfg
+          sed -i 's|^keystore/debug_user=.*|keystore/debug_user=""|' export_presets.cfg
+          sed -i 's|^keystore/debug_password=.*|keystore/debug_password=""|' export_presets.cfg
+
+          test -f "${GITHUB_WORKSPACE}/android/alventira-debug.keystore" || (echo "[ERROR] File keystore hilang." && exit 1)
 
           mkdir -p build/android
           echo "[INFO] Memulai export Android (debug signing, internal distribution)..."
           
-          # Jalankan proses export
           godot --headless --verbose --export-debug "Android" build/android/alventira.apk 2>&1 | tee export_log.txt
 
           if [ ! -f build/android/alventira.apk ]; then
