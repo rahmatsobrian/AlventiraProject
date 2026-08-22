@@ -38,8 +38,8 @@ jobs:
           echo "--- Disk ---"
           df -h .
 
-      # --- 3. Setup Java / SDK / Engine -----------------------------------
-      - name: "3. Setup Godot Export Templates & Java"
+      # --- 3. Setup Godot Export Templates & Config -----------------------
+      - name: "3. Setup Godot Export Templates & Config"
         run: |
           set -e
           echo "[INFO] Menyiapkan direktori export template..."
@@ -51,28 +51,19 @@ jobs:
             echo "[INFO] Export template ${GODOT_VERSION} berhasil disiapkan."
           else
             echo "[ERROR] Export template Godot ${GODOT_VERSION} tidak ditemukan di dalam image."
-            echo "[ERROR] Pastikan tag image 'barichello/godot-ci:${GODOT_VERSION}' masih tersedia."
             exit 1
           fi
 
-          # Image barichello/godot-ci SUDAH membawa editor_settings-4.3.tres
-          # lengkap yang di-bake saat image dibuild (termasuk java_sdk_path
-          # DAN debug keystore bawaan mereka sendiri) di /root/.config/godot.
-          # Percobaan saya sebelumnya (menulis ulang file ini dari nol) itu
-          # keliru — malah MENIMPA config resmi yang sudah lengkap dengan
-          # versi saya yang kurang lengkap. Perbaikannya: pakai apa adanya.
-          if [ -d "/root/.config/godot" ]; then
-            mkdir -p ~/.config
-            mv /root/.config/godot ~/.config/godot
-            echo "[INFO] Config editor bawaan image berhasil dipindahkan."
-            echo "[INFO] Isi editor_settings-4.3.tres bawaan image:"
-            cat ~/.config/godot/editor_settings-4.3.tres 2>/dev/null || echo "[WARN] File tidak ditemukan di lokasi terduga."
-          else
-            echo "[WARN] /root/.config/godot tidak ada di image — lanjut tanpa config bawaan."
-          fi
-
-          echo "[INFO] JAVA_HOME dari image: ${JAVA_HOME:-<tidak diset>}"
-          echo "[INFO] ANDROID_HOME dari image: ${ANDROID_HOME:-<tidak diset>}"
+          echo "[INFO] Membuat EditorSettings untuk memastikan path SDK terbaca benar..."
+          mkdir -p ~/.config/godot
+          # Memaksa Godot membaca SDK dan Java dari environment variables GitHub Actions
+          cat <<EOF > ~/.config/godot/editor_settings-4.3.tres
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "${ANDROID_HOME:-/usr/lib/android-sdk}"
+          export/android/java_sdk_path = "${JAVA_HOME:-/usr/lib/jvm/java-17-openjdk-amd64}"
+          EOF
+          echo "[INFO] Config EditorSettings selesai disiapkan."
 
       # --- 4. Verify Dependencies ------------------------------------------
       - name: "4. Verifikasi Dependency & File Project"
