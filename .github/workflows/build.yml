@@ -131,19 +131,24 @@ jobs:
           VERSION_CODE="${{ github.run_number }}"
           VERSION_NAME="1.0.${{ github.run_number }}"
           echo "[INFO] Set versionCode=$VERSION_CODE versionName=$VERSION_NAME"
-          sed -i "s/version\/code=.*/version\/code=$VERSION_CODE/" export_presets.cfg
-          sed -i "s/version\/name=\".*\"/version\/name=\"$VERSION_NAME\"/" export_presets.cfg
+          
+          # Update versi
+          sed -i "s|version/code=.*|version/code=$VERSION_CODE|" export_presets.cfg
+          sed -i "s|version/name=.*|version/name=\"$VERSION_NAME\"|" export_presets.cfg
 
-          # Hapus paksa konfigurasi keystore lokal dari preset (jika ada) 
-          # agar Godot dipaksa menggunakan absolute path dari EditorSettings Step 3.
-          sed -i 's|keystore/debug=.*|keystore/debug=""|' export_presets.cfg
-          sed -i 's|keystore/debug_user=.*|keystore/debug_user=""|' export_presets.cfg
-          sed -i 's|keystore/debug_password=.*|keystore/debug_password=""|' export_presets.cfg
+          # Inject absolute path Keystore langsung ke dalam export_presets.cfg
+          # Ini wajib untuk Godot 4.x agar preset tidak terbaca 'error configuration'
+          KEYSTORE_PATH="${GITHUB_WORKSPACE}/android/alventira-debug.keystore"
+          sed -i "s|^keystore/debug=.*|keystore/debug=\"${KEYSTORE_PATH}\"|" export_presets.cfg
+          sed -i "s|^keystore/debug_user=.*|keystore/debug_user=\"androiddebugkey\"|" export_presets.cfg
+          sed -i "s|^keystore/debug_password=.*|keystore/debug_password=\"android\"|" export_presets.cfg
 
-          test -f "android/alventira-debug.keystore" || (echo "[ERROR] File keystore tidak ditemukan." && exit 1)
+          test -f "$KEYSTORE_PATH" || (echo "[ERROR] File keystore tidak ditemukan." && exit 1)
 
           mkdir -p build/android
           echo "[INFO] Memulai export Android (debug signing, internal distribution)..."
+          
+          # Jalankan proses export
           godot --headless --verbose --export-debug "Android" build/android/alventira.apk 2>&1 | tee export_log.txt
 
           if [ ! -f build/android/alventira.apk ]; then
