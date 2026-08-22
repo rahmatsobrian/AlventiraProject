@@ -55,41 +55,24 @@ jobs:
             exit 1
           fi
 
-          # Setting keystore debug & java SDK path Godot BUKAN dibaca dari
-          # export_presets.cfg saja — ada juga setting global EditorSettings
-          # (export/android/debug_keystore dkk) yang harus ditulis dengan
-          # format resource .tres yang benar (header [gd_resource ...] +
-          # [resource]). Format ini persis meniru cara resmi yang dipakai
-          # image barichello/godot-ci sendiri di Dockerfile-nya — percobaan
-          # saya sebelumnya gagal karena headernya tidak lengkap/salah.
-          JAVA_HOME_PATH="$(dirname "$(dirname "$(readlink -f "$(which java)")")")"
-          KEYSTORE_ABS_PATH="$(pwd)/android/alventira-debug.keystore"
-          echo "[INFO] JAVA_HOME terdeteksi: $JAVA_HOME_PATH"
-          echo "[INFO] Keystore debug (absolut): $KEYSTORE_ABS_PATH"
-          test -f "$KEYSTORE_ABS_PATH" || (echo "[ERROR] Keystore tidak ditemukan di path tersebut." && exit 1)
-
-          mkdir -p ~/.config/godot/
-          {
-            echo '[gd_resource type="EditorSettings" format=3]'
-            echo ''
-            echo '[resource]'
-            echo "export/android/java_sdk_path = \"$JAVA_HOME_PATH\""
-            echo "export/android/debug_keystore = \"$KEYSTORE_ABS_PATH\""
-            echo 'export/android/debug_keystore_user = "alventira_dev"'
-            echo 'export/android/debug_keystore_pass = "alventira123"'
-          } > ~/.config/godot/editor_settings-4.3.tres
-          echo "[INFO] editor_settings-4.3.tres berhasil ditulis:"
-          cat ~/.config/godot/editor_settings-4.3.tres
-
-          # JAVA_HOME juga diset sebagai environment variable sebagai
-          # fallback tambahan (tidak merugikan, dan sudah terbukti membantu
-          # di build sebelumnya).
-          echo "JAVA_HOME=$JAVA_HOME_PATH" >> "$GITHUB_ENV"
-
-          echo "[INFO] ANDROID_HOME dari image: ${ANDROID_HOME:-<tidak diset>}"
-          if [ -z "${ANDROID_HOME:-}" ]; then
-            echo "[WARN] ANDROID_HOME tidak diset oleh image dasar — export Android di step berikutnya mungkin gagal."
+          # Image barichello/godot-ci SUDAH membawa editor_settings-4.3.tres
+          # lengkap yang di-bake saat image dibuild (termasuk java_sdk_path
+          # DAN debug keystore bawaan mereka sendiri) di /root/.config/godot.
+          # Percobaan saya sebelumnya (menulis ulang file ini dari nol) itu
+          # keliru — malah MENIMPA config resmi yang sudah lengkap dengan
+          # versi saya yang kurang lengkap. Perbaikannya: pakai apa adanya.
+          if [ -d "/root/.config/godot" ]; then
+            mkdir -p ~/.config
+            mv /root/.config/godot ~/.config/godot
+            echo "[INFO] Config editor bawaan image berhasil dipindahkan."
+            echo "[INFO] Isi editor_settings-4.3.tres bawaan image:"
+            cat ~/.config/godot/editor_settings-4.3.tres 2>/dev/null || echo "[WARN] File tidak ditemukan di lokasi terduga."
+          else
+            echo "[WARN] /root/.config/godot tidak ada di image — lanjut tanpa config bawaan."
           fi
+
+          echo "[INFO] JAVA_HOME dari image: ${JAVA_HOME:-<tidak diset>}"
+          echo "[INFO] ANDROID_HOME dari image: ${ANDROID_HOME:-<tidak diset>}"
 
       # --- 4. Verify Dependencies ------------------------------------------
       - name: "4. Verifikasi Dependency & File Project"

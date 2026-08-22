@@ -84,15 +84,12 @@ Setiap push ke branch `main` (atau lewat tab **Actions → Build Android APK →
 
 ## Informasi Signing Development
 
-File `android/alventira-debug.keystore` adalah keystore development yang **sengaja dikomit ke repository** (bukan lewat Secret), dengan:
+File `android/alventira-debug.keystore` (alias `alventira_dev`, password `alventira123`, masa berlaku 20.000 hari) disimpan di repo untuk keperluan build/signing **lokal** (lewat Godot Editor di komputermu sendiri).
 
-- Alias: `alventira_dev`
-- Password store & key: `alventira123`
-- Masa berlaku: 20.000 hari (hingga tahun 2081)
+Untuk **build lewat GitHub Actions**, signing malah memakai debug keystore bawaan image `barichello/godot-ci:4.3` sendiri (sudah di-bake di dalam image itu, bukan dari repo kita) — supaya konfigurasi keystore custom di `export_presets.cfg` tidak bentrok dengan validasi export Godot 4.3 (ada beberapa bug/keanehan di area ini pada Godot 4.3, lihat riwayat commit workflow ini untuk detail). Karena kita mengunci workflow ke tag image yang spesifik (`barichello/godot-ci:4.3`), debug keystore bawaan image itu **tetap sama di setiap run** selama tag-nya tidak berubah — jadi APK dari CI tetap bisa saling update tanpa uninstall, sama seperti tujuan awalnya.
 
-Karena keystore ini selalu sama di setiap build, APK versi baru bisa **meng-update APK versi lama tanpa perlu uninstall** — sesuai kebutuhan development/testing internal.
+⚠️ **Peringatan penting:** kedua keystore debug di atas (baik yang di repo maupun bawaan image) **BUKAN untuk production / rilis ke Google Play Store** — siapa pun bisa membuat APK dengan signature yang sama. Untuk rilis production sungguhan, buat keystore terpisah, jangan pernah dikomit ke repo, dan simpan sebagai Repository Secret khusus rilis (di luar scope workflow ini).
 
-⚠️ **Peringatan penting:** keystore ini **BUKAN untuk production / rilis ke Google Play Store**. Karena filenya publik di repository, siapa pun bisa membuat APK yang "terlihat resmi" dengan signature yang sama. Untuk rilis production sungguhan, buat keystore terpisah, jangan pernah dikomit ke repo, dan simpan sebagai Repository Secret khusus rilis (di luar scope workflow ini).
 
 ## Cara Menambahkan Konten Baru
 
